@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Stendhal Book Converter</title>
+		<meta
+			name="description"
+			content="An utility to convert ebooks or other files to Stendhal compatible books."
+		/>
+		<meta name="author" content="NebSpacefarer" />
+	</head>
+
+	<body>
+		<img src="https://i.imgur.com/tMEy9oA.png" width="400" />
+		<h2>Stendhal Book Converter</h2>
+		This script will allow you to convert any piece of text (ebooks, novels,
+		plays, dialogues and more) to the Stendhal book format compatible in
+		game.<br />
+		<i
+			>Please note this will trim every line breaks from the original text to
+			avoid bugs. Therefore, chapters transitions might be esthetically
+			unpleasant.<br />
+			I recommend to put each chapter title in bold as this script leaves a few
+			free characters per page to occasionally style the text in game for this
+			purpose.</i
+		><br /><br />
+
+		<h3>How to?</h3>
+
+		First, choose any text you would like to convert. It can be an ebook, a
+		wikipedia article, or anything else as long as it is text.<br />
+		Then, you can type in the respective fields the name of the book and your
+		nickname in game in the author field.<br /><br />
+
+		Right after, you can press <strong>"Convert"</strong>. This will convert
+		your text and automatically separate it in as many books it needs, taking in
+		consideration Minecraft limitations. (If more than 100 pages, it will
+		created another book etc.)<br /><br />
+
+		When converting your text is over, you can click the newly appeared
+		<strong>"Save Stendhal Books"</strong> button.<br />
+		This will automatically download all the books, you just have to save the
+		files when the popups appear.<br />
+		After downloading the books, do not forget to move them to
+		<strong>.minecraft\config\stendhal\books</strong> .<br />
+		In a <strong>Book & Quill</strong> in game, you can then click on the
+		<strong>"Import Book"</strong> button, and you will see your new book(s)
+		ready to be imported.
+		<br />
+
+		<h5>Settings</h5>
+		Max characters per page (default 220):
+		<input
+			id="maxChar"
+			type="range"
+			min="1"
+			max="250"
+			value="220"
+			style="display: inline"
+			onInput="maxChar();"
+		/>
+		<input id="maxCharText" value="220" onChange="maxCharText();" />
+
+		<h5>Your text</h5>
+		<textarea
+			type="text"
+			id="bookText"
+			placeholder="Paste your text here..."
+		></textarea>
+		<input type="text" id="bookTitle" placeholder="Enter book title..." />
+		<input type="text" id="bookAuthor" placeholder="Enter author here..." />
+		<button id="buttonConvert" onClick="convertText();">Convert</button>
+
+		<h5>Result</h5>
+		<span id="error"></span><br /><br />
+		<span id="container"></span>
+
+		<!-- Scripts & Styles -->
+		<style>
+			body {
+				margin: 30px;
+				padding: 0;
+				background: #161620;
+				color: white;
+			}
+
+			h5 {
+				margin-block-end: 0;
+			}
+
+			textarea {
+				width: 100%;
+				height: 100px;
+				color: white;
+				background: #282828;
+				border: unset;
+			}
+
+			input {
+				color: white;
+				background: #282828;
+				border: unset;
+			}
+
+			#error {
+				color: red;
+			}
+
+			#done {
+				color: green;
+			}
+
+			#buttonConvert {
+				font-weight: 700;
+				cursor: pointer;
+				border-radius: 5px;
+				color: white;
+				background: green;
+				border: unset;
+				min-height: 30px;
+				width: 60px;
+				margin: 0 10px 0 10p;
+			}
+
+			#maxCharText {
+				font-weight: 700;
+				text-align: center;
+				color: white;
+				background: #282828;
+				border: unset;
+				min-height: 30px;
+				width: 60px;
+			}
+		</style>
+
+		<script>
+			function convertText() {
+				document.getElementById("error").innerHTML = "";
+
+				var text = document.getElementById("bookText").value;
+				var title = document.getElementById("bookTitle").value;
+				var author = document.getElementById("bookAuthor").value;
+
+				if (text.length == 0) {
+					document.getElementById("error").innerHTML =
+						"Error: There is no text.";
+					return;
+				}
+				if (title.length == 0) {
+					document.getElementById("error").innerHTML =
+						"Error: Please specify a book title.";
+					return;
+				}
+				if (author.length == 0) {
+					document.getElementById("error").innerHTML =
+						"Error: Please specify a book author.";
+					return;
+				}
+
+				document.getElementById("container").innerHTML = "";
+
+				var books = [];
+				var chunks = [];
+				var slider = document.getElementById("maxChar");
+				var size = slider.value;
+
+				textBooks = text.replace(/(\r\n|\n|\r)/gm, " ");
+
+				while (textBooks.length > 0) {
+					var chunk;
+					if (textBooks.length >= size*100) {
+						chunk = textBooks.substring(0, size*100);
+						chunk = chunk.substr(
+							0,
+							Math.min(chunk.length, chunk.lastIndexOf(" "))
+						);
+					} else {
+						chunk = textBooks;
+					}
+
+					textBooks = textBooks.substring(chunk.length + 1, textBooks.length);
+					books.push(chunk);
+				}
+
+				var bookNumb;
+				if (books.length > 1) bookNumb = 1;
+				else bookNumb = "";
+
+				var button = document.createElement("button");
+				document.getElementById("container").appendChild(button);
+
+				if (books.length > 1) button.innerHTML = "Save Stendhal Books";
+				else button.innerHTML = "Save Stendhal Book";
+
+				button.addEventListener("click", (event) => {
+					saveBook();
+				});
+
+				books.forEach((book) => {
+					var parent = document.createElement("span");
+					var result = document.createElement("textarea");
+					var slider = document.getElementById("maxChar");
+					document.getElementById("container").appendChild(parent);
+
+					var chunks = [];
+					var size = slider.value;
+
+					let textPages = book;
+					textPages = textPages.replace(/(\r\n|\n|\r)/gm, " ");
+
+					while (textPages.length > 0) {
+						var chunk;
+						if (textPages.length >= size) {
+							chunk = textPages.substring(0, size);
+							chunk = chunk.substr(
+								0,
+								Math.min(chunk.length, chunk.lastIndexOf(" "))
+							);
+						} else {
+							chunk = textPages;
+						}
+
+						textPages = textPages.substring(chunk.length + 1, textPages.length);
+						chunks.push("#- " + chunk + "\n");
+					}
+
+					result.value +=
+						"title: " +
+						title +
+						" " +
+						bookNumb +
+						"-" +
+						books.length +
+						"\nauthor: " +
+						author +
+						"\npages:\n";
+					chunks.forEach((chunk) => {
+						result.value += chunk + "\n";
+					});
+
+					parent.appendChild(result);
+
+					bookNumb++;
+				});
+			}
+
+			function maxChar() {
+				var slider = document.getElementById("maxChar");
+				var text = document.getElementById("maxCharText");
+
+				slider.oninput = function () {
+					text.value = this.value;
+				};
+			}
+
+			function maxCharText() {
+				var slider = document.getElementById("maxChar");
+				var text = document.getElementById("maxCharText");
+
+				slider.value = text.value;
+			}
+
+			function saveBook() {
+				var books = document.getElementById("container").children;
+
+				for (var i = 1; i < books.length; i++) {
+					let textarea = books[i].children[0];
+					let title = document.getElementById("bookTitle").value;
+					let text = textarea.value;
+
+					const a = document.createElement("a");
+					const file = new Blob([text], { type: "text/plain" });
+
+					a.href = URL.createObjectURL(file);
+					a.download = title + " " + i + "-" + (books.length - 1) + ".stendhal";
+					a.click();
+
+					URL.revokeObjectURL(a.href);
+				}
+			}
+		</script>
+	</body>
+</html>
